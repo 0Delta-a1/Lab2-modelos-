@@ -326,6 +326,25 @@ dff <- dffits(m_diag); dfb <- dfbetas(m_diag)
 
 casos_cook <- which(cook > 4/n)
 
+# --- F5 (Continuación): Sensibilidad sin observaciones influyentes ---
+if (length(casos_cook) > 0) {
+  cat("\nCasos influyentes identificados (Cook > 4/n):", casos_cook, "\n")
+  
+  # Reajuste sin puntos influyentes
+  m_diag_sin <- lm(formula(m_diag), data = C[-casos_cook, ])
+  
+  # Comparación de coeficientes y R2
+  comp_sens <- data.frame(
+    Variable = names(coef(m_diag)),
+    Modelo_Completo = coef(m_diag),
+    Sin_Influyentes = coef(m_diag_sin),
+    Diferencia_Relativa_Pct = round(((coef(m_diag_sin) - coef(m_diag)) / coef(m_diag)) * 100, 2)
+  )
+  cat("\nTabla de Sensibilidad al retirar influyentes:\n")
+  print(comp_sens, row.names = FALSE)
+  write.csv(comp_sens, "resultados/cars93_sensibilidad_influencia.csv", row.names = FALSE)
+}
+
 # Guardar Gráfico de Diagnósticos en 'figuras/'
 png("figuras/cars93_diagnosticos.png", width = 1400, height = 900, res = 130)
 par(mfrow = c(2, 2))
