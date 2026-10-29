@@ -168,6 +168,41 @@ mC_full <- lm(MPG.city ~ ., data = C)
 mC_AIC <- stepAIC(mC_full, direction = "both", k = 2, trace = FALSE)
 mC_BIC <- stepAIC(mC_full, direction = "both", k = log(nrow(C)), trace = FALSE)
 
+# --- F3 (Continuación): VIF, n efectivo y evaluaciones ----------------
+
+# 1. Declarar n efectivo en Cars93 tras eliminar NAs
+cat("\nTamaño muestral efectivo (Cars93, sin NAs): n =", nrow(C), "\n")
+
+# 2. VIF de los modelos elegidos en Hald (Ej. 8b)
+cat("\n--- VIFs Modelos Seleccionados (Hald) ---\n")
+cat("\n[Hald - BIC Exhaustivo]:\n")
+print(car::vif(modelos_H$exhaustivo_BIC))
+
+cat("\n[Hald - Stepwise/AIC]:\n")
+print(car::vif(modelos_H$stepwise))
+
+# 3. VIF del modelo elegido en BostonHousing
+cat("\n--- VIF Modelo Seleccionado (BostonHousing) ---\n")
+print(car::vif(modelo_B_BIC))
+
+# 4. VIF de los modelos elegidos en Cars93
+cat("\n--- VIFs Modelos Seleccionados (Cars93) ---\n")
+cat("\n[Cars93 - BIC Exhaustivo]:\n")
+print(car::vif(mC_BIC_exh))
+
+cat("\n[Cars93 - stepAIC (k = 2)]:\n")
+print(car::vif(mC_AIC))
+
+cat("\n[Cars93 - stepBIC (k = log(n))]:\n")
+print(car::vif(mC_BIC))
+
+# 5. Comparación de espacio de búsqueda: 2^p vs Paso a Paso
+p_Hald <- ncol(XH)
+p_Cars <- length(pred_C)
+
+cat("\n--- Espacio de Búsqueda Evaluado ---\n")
+cat("Hald (p =", p_Hald, "): Búsqueda exhaustiva evalúa 2^p =", 2^p_Hald, "modelos.\n")
+cat("Cars93 (p =", p_Cars, "): Búsqueda exhaustiva evaluaría 2^p =", 2^p_Cars, "modelos.\n")
 
 # 6. F4: RIDGE, LASSO Y ELASTIC NET EN HALD ---------------------------
 cat("\n================ F4: REGULARIZACIÓN ================\n")
