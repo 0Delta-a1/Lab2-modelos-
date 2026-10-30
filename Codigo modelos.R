@@ -91,6 +91,7 @@ cat("Cars93 original:", dim(MASS::Cars93), "\n")
 cat("Filas Cars93 con NA en variables seleccionadas:",
     sum(!complete.cases(C0)), "de", nrow(C0), "\n")
 C <- C0[complete.cases(C0), , drop = FALSE]
+dim(C)
 
 data("BostonHousing", package = "mlbench")
 B <- BostonHousing[, c("medv", "indus", "rm", "ptratio", "lstat")]
@@ -173,6 +174,7 @@ mC_BIC <- stepAIC(mC_full, direction = "both", k = log(nrow(C)), trace = FALSE)
 # 1. Declarar n efectivo en Cars93 tras eliminar NAs
 cat("\nTamaño muestral efectivo (Cars93, sin NAs): n =", nrow(C), "\n")
 
+
 # 2. VIF de los modelos elegidos en Hald (Ej. 8b)
 cat("\n--- VIFs Modelos Seleccionados (Hald) ---\n")
 cat("\n[Hald - BIC Exhaustivo]:\n")
@@ -233,13 +235,12 @@ fit_r <- glmnet(XH, yH, alpha = 0, standardize = TRUE)
 fit_l <- glmnet(XH, yH, alpha = 1, standardize = TRUE)
 fit_e <- glmnet(XH, yH, alpha = .5, standardize = TRUE)
 
-# Guardar Gráficos de Trayectorias en 'figuras/'
-png("figuras/hald_trayectorias.png", width = 1500, height = 500, res = 140)
-par(mfrow = c(1, 3))
-plot(fit_r, xvar = "lambda", main = "Ridge")
-plot(fit_l, xvar = "lambda", main = "Lasso")
-plot(fit_e, xvar = "lambda", main = "Elastic Net")
-dev.off()
+
+# === CONTINUACIÓN FASE 4 (Desde la línea 187 limpia) ===
+
+fit_r <- glmnet(XH, yH, alpha = 0, standardize = TRUE)
+fit_l <- glmnet(XH, yH, alpha = 1, standardize = TRUE)
+fit_e <- glmnet(XH, yH, alpha = .5, standardize = TRUE)
 
 coef_tabla <- function(cv, metodo) {
   a <- as.matrix(coef(cv, s = "lambda.min"))
@@ -271,7 +272,6 @@ freq <- data.frame(variable = rownames(freq), freq / B_est, row.names = NULL)
 df_H <- rbind(data.frame(metodo = "Ridge", lambda = fit_r$lambda, df = fit_r$df),
               data.frame(metodo = "Lasso", lambda = fit_l$lambda, df = fit_l$df),
               data.frame(metodo = "Elastic Net", lambda = fit_e$lambda, df = fit_e$df))
-
 
 # 7. VALIDACIÓN PREDICTIVA CARS93 (100 PARTICIONES 80/20) ------------
 cat("\nValidación predictiva Cars93: 100 particiones 80/20\n")
@@ -310,55 +310,100 @@ resumen_rmse <- data.frame(metodo = rownames(resumen_rmse),
                            RMSE_media = resumen_rmse[, "media"], RMSE_sd = resumen_rmse[, "sd"], row.names = NULL)
 resumen_rmse <- resumen_rmse[order(resumen_rmse$RMSE_media), ]
 
-# Guardar Gráfico de RMSE en 'figuras/'
-png("figuras/cars93_rmse.png", width = 1100, height = 700, res = 130)
-boxplot(RMSE ~ metodo, data = salidas, las = 2, ylab = "RMSE en test",
-        main = "Cars93: error en 100 particiones 80/20", xlab = "")
-dev.off()
-
-
 # 8. F5: RESIDUOS E INFLUENCIA -----------------------------------------
 cat("\n================ F5: VALIDEZ ================\n")
 m_diag <- mC_BIC_exh
-n <- nobs(m_diag); p <- length(coef(m_diag))
-rs <- rstudent(m_diag); hii <- hatvalues(m_diag); cook <- cooks.distance(m_diag)
-dff <- dffits(m_diag); dfb <- dfbetas(m_diag)
+n <- nobs(m_diag)
+p <- length(coef(m_diag))
 
-casos_cook <- which(cook > 4/n)
+rs <- rstudent(m_diag)
+hii <- hatvalues(m_diag)
+cook <- cooks.distance(m_diag)
+dff <- dffits(m_diag)
+dfb <- dfbetas(m_diag)
 
-# --- F5 (Continuación): Sensibilidad sin observaciones influyentes ---
+umbral_cook <- 4/n
+umbral_hii <- 2*p/n
+umbral_dff <- 2*sqrt(p/n)
+umbral_dfb <- 2/sqrt(n)
+
+casos_cook <- which(cook > umbral_cook)
+
 if (length(casos_cook) > 0) {
-  cat("\nCasos influyentes identificados (Cook > 4/n):", casos_cook, "\n")
+  cat("\nCasos influyentes identificados (Cook > 4/n):", paste(casos_cook, collapse=", "), "\n")
   
-  # Reajuste sin puntos influyentes
   m_diag_sin <- lm(formula(m_diag), data = C[-casos_cook, ])
-  
-  # Comparación de coeficientes y R2
   comp_sens <- data.frame(
     Variable = names(coef(m_diag)),
     Modelo_Completo = coef(m_diag),
     Sin_Influyentes = coef(m_diag_sin),
-    Diferencia_Relativa_Pct = round(((coef(m_diag_sin) - coef(m_diag)) / coef(m_diag)) * 100, 2)
+    Dif_Relativa_Pct = round(((coef(m_diag_sin) - coef(m_diag)) / coef(m_diag)) * 100, 2)
   )
-  cat("\nTabla de Sensibilidad al retirar influyentes:\n")
+  cat("\nTabla de Sensibilidad (Coeficientes) al retirar influyentes:\n")
   print(comp_sens, row.names = FALSE)
   write.csv(comp_sens, "resultados/cars93_sensibilidad_influencia.csv", row.names = FALSE)
+  
+  cat("\nRe-evaluando la selección de variables sin casos influyentes...\n")
+  sel_C_sin <- subconjuntos(C[-casos_cook, ], "MPG.city", pred_C)
+  vars_BIC_C_sin <- names(coef(sel_C_sin$ajuste, id = which.min(sel_C_sin$tabla$BIC)))[-1]
+  
+  cat("Selección original (BIC):", paste(vars_BIC_C, collapse=", "), "\n")
+  cat("Selección sin influyentes (BIC):", paste(vars_BIC_C_sin, collapse=", "), "\n")
+} else {
+  cat("\nNo se identificaron casos con Distancia de Cook > 4/n.\n")
 }
 
-# Guardar Gráfico de Diagnósticos en 'figuras/'
-png("figuras/cars93_diagnosticos.png", width = 1400, height = 900, res = 130)
-par(mfrow = c(2, 2))
-plot(fitted(m_diag), rs, xlab = "Ajustados", ylab = "Residuos studentizados", main = "Residuos vs ajustados")
-abline(h = c(-2, 0, 2), lty = c(2, 1, 2))
-qqnorm(rs, main = "QQ residuos"); qqline(rs)
-plot(hii, type = "h", main = "Apalancamiento", ylab = "hii", xlab = "Caso")
-abline(h = 2*p/n, lty = 2)
-plot(cook, type = "h", main = "Distancia de Cook", ylab = "Cook", xlab = "Caso")
-abline(h = 4/n, lty = 2)
+cat("\n--- ADVERTENCIA SOBRE INFERENCIA POSTERIOR A LA SELECCIÓN ---\n")
+cat("Los valores p e intervalos de confianza reportados asumen un modelo fijado a priori.\n")
+cat("Dado que este modelo fue seleccionado empíricamente usando los mismos datos\n")
+cat("(criterio BIC), la inferencia clásica post-selección no es válida.\n")
+
+# 9. CONSOLIDACIÓN DE GRÁFICOS (GENERADOS UNA SOLA VEZ) ----------------
+cat("\nGenerando gráficos y guardándolos en 'figuras/'...\n")
+
+png("figuras/01_vif_cars93.png", width = 800, height = 600, res = 120)
+vifs <- sort(car::vif(mC_full), decreasing = FALSE)
+par(mar = c(5, 10, 4, 2) + 0.1) 
+barplot(vifs, horiz = TRUE, las = 1, col = ifelse(vifs > 10, "darkblue", "gray"), log = "x", main = "VIF Cars93", xlab = "VIF (escala logarítmica)")
+abline(v = 10, lty = 2, lwd = 2)
+par(mar = c(5, 4, 4, 2) + 0.1)
+dev.off()
+
+png("figuras/F4_CV_Hald.png", width = 1500, height = 500, res = 140)
+par(mfrow = c(1, 3)); plot(cv_r, main = "Ridge"); plot(cv_l, main = "Lasso"); plot(cv_e, main = "Elastic Net")
+dev.off()
+
+png("figuras/F4_trayectorias_Hald.png", width = 1500, height = 500, res = 140)
+par(mfrow = c(1, 3)); plot(fit_r, xvar = "lambda", main = "Ridge"); plot(fit_l, xvar = "lambda", main = "Lasso"); plot(fit_e, xvar = "lambda", main = "Elastic Net")
+dev.off()
+
+png("figuras/F4_RMSE_Cars93.png", width = 1000, height = 600, res = 130)
+boxplot(RMSE ~ metodo, data = salidas, las = 2, ylab = "RMSE en test", main = "Cars93: 100 particiones 80/20", xlab = "")
 dev.off()
 
 
-# 9. CONSOLIDACIÓN Y EXPORTACIÓN FINAL A CSV Y REGISTROS ---------------
+png("figuras/cars93_diagnosticos.png", width = 1600, height = 1000, res = 130)
+par(mfrow = c(2, 3))
+boxplot(rs, main = "Boxplot de Residuos", ylab = "Residuos studentizados", col="lightblue")
+plot(fitted(m_diag), rs, xlab = "Ajustados", ylab = "Residuos studentizados", main = "Residuos vs ajustados")
+abline(h = c(-2, 0, 2), lty = c(2, 1, 2), col="gray")
+plot(hii, type = "h", main = "Apalancamiento", ylab = "hii", xlab = "Caso"); abline(h = umbral_hii, lty = 2, col = "red")
+plot(cook, type = "h", main = "Distancia de Cook", ylab = "Cook", xlab = "Caso"); abline(h = umbral_cook, lty = 2, col = "red")
+plot(dff, type = "h", main = "DFFITS", ylab = "DFFITS", xlab = "Caso"); abline(h = c(-umbral_dff, umbral_dff), lty = 2, col = "red")
+plot(apply(abs(dfb), 1, max), type = "h", main = "Impacto Máximo en Coefs (DFBETAS)", ylab = "Max |DFBETAS|", xlab = "Caso"); abline(h = umbral_dfb, lty = 2, col = "red")
+dev.off()
+
+cat("\n================ RESUMEN COMPARATIVO FINAL ===============-\n")
+if (exists("tabla_coef_H")) {
+  cat("\n1. Comparativa de Coeficientes (Hald):\n")
+  print(tabla_coef_H, row.names = FALSE)
+}
+if (exists("resumen_rmse")) {
+  cat("\n2. Resumen del Error Predictivo (RMSE en Cars93 - 100 particiones):\n")
+  print(resumen_rmse, row.names = FALSE)
+}
+
+# 10. EXPORTACIÓN FINAL A CSV Y REGISTROS -----------------------------
 write.csv(salidas, "resultados/cars93_rmse_100_particiones.csv", row.names = FALSE)
 write.csv(resumen_rmse, "resultados/cars93_resumen_rmse.csv", row.names = FALSE)
 write.csv(sel_H$tabla, "resultados/hald_seleccion.csv", row.names = FALSE)
@@ -368,22 +413,7 @@ write.csv(tabla_cv_H, "resultados/hald_cv.csv", row.names = FALSE)
 write.csv(tabla_coef_H, "resultados/hald_coeficientes.csv", row.names = FALSE)
 write.csv(df_H, "resultados/hald_grados_libertad.csv", row.names = FALSE)
 write.csv(freq, "resultados/hald_estabilidad.csv", row.names = FALSE)
-
 writeLines(capture.output(sessionInfo()), "registros/session_info.txt")
 
-cat("\n================ RESUMEN COMPARATIVO FINAL ===============-\n")
-if (exists("tabla_coef_H")) {
-  cat("\n1. Comparativa de Coeficientes (Hald):\n")
-  print(tabla_coef_H, row.names = FALSE)
-}
 
-if (exists("resumen_rmse")) {
-  cat("\n2. Resumen del Error Predictivo (RMSE en Cars93 - 100 particiones):\n")
-  print(resumen_rmse, row.names = FALSE)
-}
 
-cat("\n¡PROCESO COMPLETADO EXITOSAMENTE!\n")
-cat("- Carpetas automáticas verificadas: 'registros/', 'resultados/', 'figuras/'\n")
-cat("- Tablas exportadas en: 'resultados/'\n")
-cat("- Gráficos exportados en: 'figuras/'\n")
-cat("- Entorno registrado en: 'registros/session_info.txt'\n")
