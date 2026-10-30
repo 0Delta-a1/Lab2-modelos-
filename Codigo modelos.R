@@ -79,6 +79,9 @@ subconjuntos <- function(datos, respuesta, predictores) {
 
 # 3. DATOS Y COMPROBACIONES --------------------------------------------
 H <- MASS::cement
+# Corrección Crítica: MASS::cement tiene la respuesta 'y' en la columna 5.
+# Movemos la columna 5 al principio para que tu lógica posterior (Y col 1) funcione.
+H <- H[, c(5, 1, 2, 3, 4)]
 names(H) <- c("Y", "X1", "X2", "X3", "X4")
 
 vars_cars <- c("MPG.city", "Min.Price", "Price", "Max.Price", "EngineSize",
@@ -91,15 +94,12 @@ cat("Cars93 original:", dim(MASS::Cars93), "\n")
 cat("Filas Cars93 con NA en variables seleccionadas:",
     sum(!complete.cases(C0)), "de", nrow(C0), "\n")
 C <- C0[complete.cases(C0), , drop = FALSE]
-dim(C)
 
 data("BostonHousing", package = "mlbench")
 B <- BostonHousing[, c("medv", "indus", "rm", "ptratio", "lstat")]
 B <- B[complete.cases(B), , drop = FALSE]
 names(B) <- c("Y", "indus", "rm", "ptratio", "lstat")
 stopifnot(nrow(H) == 13, ncol(H) == 5, all(vapply(C, is.numeric, logical(1))))
-
-
 # 4. F2: DIAGNÓSTICO DE COLINEALIDAD ------------------------------------
 cat("\n================ F2: COLINEALIDAD ================\n")
 XH <- H[, -1, drop = FALSE]
@@ -393,15 +393,6 @@ plot(dff, type = "h", main = "DFFITS", ylab = "DFFITS", xlab = "Caso"); abline(h
 plot(apply(abs(dfb), 1, max), type = "h", main = "Impacto Máximo en Coefs (DFBETAS)", ylab = "Max |DFBETAS|", xlab = "Caso"); abline(h = umbral_dfb, lty = 2, col = "red")
 dev.off()
 
-cat("\n================ RESUMEN COMPARATIVO FINAL ===============-\n")
-if (exists("tabla_coef_H")) {
-  cat("\n1. Comparativa de Coeficientes (Hald):\n")
-  print(tabla_coef_H, row.names = FALSE)
-}
-if (exists("resumen_rmse")) {
-  cat("\n2. Resumen del Error Predictivo (RMSE en Cars93 - 100 particiones):\n")
-  print(resumen_rmse, row.names = FALSE)
-}
 
 # 10. EXPORTACIÓN FINAL A CSV Y REGISTROS -----------------------------
 write.csv(salidas, "resultados/cars93_rmse_100_particiones.csv", row.names = FALSE)
