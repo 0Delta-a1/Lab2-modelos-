@@ -1,0 +1,7 @@
+"modelo","variables","numero_variables","AIC","BIC","R2_ajustado"
+"Completo","Min.Price + Price + Max.Price + EngineSize + Horsepower + RPM + Rev.per.mile + Fuel.tank.capacity + Passengers + Length + Wheelbase + Width + Turn.circle + Rear.seat.room + Luggage.room + Weight",16,416.447641304684,459.76858775544,0.755662232178608
+"Exhaustivo_Cp","Min.Price + Price + Max.Price + EngineSize + RPM + Rev.per.mile + Fuel.tank.capacity + Passengers + Wheelbase + Weight",10,408.929390022403,437.810020989574,0.76374436276232
+"Exhaustivo_AIC","Min.Price + Price + Max.Price + EngineSize + RPM + Rev.per.mile + Fuel.tank.capacity + Passengers + Wheelbase + Weight",10,408.929390022403,437.810020989574,0.76374436276232
+"Exhaustivo_BIC","Rev.per.mile + Fuel.tank.capacity + Wheelbase + Weight",4,412.901318021476,427.341633505062,0.735307574781854
+"StepAIC","Min.Price + Price + Max.Price + EngineSize + RPM + Rev.per.mile + Fuel.tank.capacity + Passengers + Wheelbase + Weight",10,408.929390022403,437.810020989574,0.76374436276232
+"StepBIC","Min.Price + Price + Max.Price + EngineSize + RPM + Rev.per.mile + Fuel.tank.capacity + Wheelbase + Weight",9,410.363206766086,436.837118485993,0.757062550829112

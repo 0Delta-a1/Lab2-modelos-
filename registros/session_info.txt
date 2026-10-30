@@ -1,0 +1,27 @@
+R version 4.5.1 (2025-06-13 ucrt)
+Platform: x86_64-w64-mingw32/x64
+Running under: Windows 11 x64 (build 26300)
+
+Matrix products: default
+  LAPACK version 3.12.1
+
+locale:
+[1] LC_COLLATE=Spanish_Mexico.utf8  LC_CTYPE=Spanish_Mexico.utf8    LC_MONETARY=Spanish_Mexico.utf8
+[4] LC_NUMERIC=C                    LC_TIME=Spanish_Mexico.utf8    
+
+time zone: America/Santiago
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] mctest_1.3.2   mlbench_2.1-11 glmnet_5.1     Matrix_1.7-3   leaps_3.2      car_3.1-5     
+[7] carData_3.0-5  MASS_7.3-66   
+
+loaded via a namespace (and not attached):
+ [1] cli_3.6.5         knitr_1.50        rlang_1.1.6       xfun_0.52         Formula_1.2-5    
+ [6] htmltools_0.5.8.1 rmarkdown_2.29    grid_4.5.1        evaluate_1.0.5    abind_1.4-8      
+[11] fastmap_1.2.0     yaml_2.3.10       foreach_1.5.2     compiler_4.5.1    codetools_0.2-20 
+[16] Rcpp_1.1.0        rstudioapi_0.17.1 lattice_0.22-7    digest_0.6.37     splines_4.5.1    
+[21] shape_1.4.6.1     tools_4.5.1       iterators_1.0.14  survival_3.8-3   
